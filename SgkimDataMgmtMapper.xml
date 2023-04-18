@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.cy.itsm.echoline.DataMgmt.Mapper.SgkimDataMgmtMapper">
+
+    <!-- 통합검색 리스트  -->
+	<select id="sgDataSearchList_Customer" parameterType="Paging" resultType="Map">
+        select
+	        A.REQUEST_NO, /* 번호 */
+	        A.REQUEST_INDEX,
+	        CONCAT(A.REQUEST_NO, '-', A.REQUEST_INDEX) TEMP_REQEUST_NO,
+	        A.REQUEST_USER_NAME, /* 요청자 */
+	        A.REQUEST_USER_ID,
+	        DATE_FORMAT(A.REQUEST_DATE, '%Y-%m-%d') REQUEST_DATE, /* 신청일 */
+	        A.PER_IN_CHA_ID, /* 담당자 */
+	        A.COMPANY_CODE,
+	        T.COMPANY_NAME, /* 고객사 */
+	        A.TITLE, /* 제목 */
+	        ELFN_SERVICE_AREA_TEXT('C002', A.SAREA_M_CODE, A.SAREA_L_CODE) AS SAREA_M_NAME, /*서비스 영역 */
+	        A.PER_IN_CHA_NAME, /* 18.담당자 */
+	        ELFN_SERVICE_STATUS(A.STATUS, A.CANCEL_STATUS, T.REQ_APPRV_YN) AS STATUS, /* 고객용 */
+	        ELFN_CODE_MASTER_NAME('M003', ELFN_SERVICE_STATUS(A.STATUS, A.CANCEL_STATUS, T.REQ_APPRV_YN), #{langCode}) AS STATUS_NAME, /* 고객용 */
+	        DATE_FORMAT(C.TRUTH_LAST_DATE, '%Y-%m-%d') AS TRUTH_LAST_DATE,
+	        C.WORK_HOUR_TOT /* 공수합계 */
+        from
+	        elt_service_req A
+	        left outer join elt_company T on
+	        (A.COMPANY_CODE = T.COMPANY_CODE)
+	        left outer join elt_service_process C on
+	        (A.REQUEST_NO = C.REQUEST_NO AND A.REQUEST_INDEX = C.REQUEST_INDEX)
+	        left outer join elt_service_detail D on
+	        (A.REQUEST_NO = D.REQUEST_NO AND A.REQUEST_INDEX = C.REQUEST_INDEX)
+	        
+        where A.status <![CDATA[<>]]> '10000'
+	         and A.DEL_FLAG = 'N'
+	         and D.WORK_TYPE='2'
+        
+        <if test='searchKey1 == "1"'>    <!-- 신청일 -->
+            and A.REQUEST_DATE BETWEEN STR_TO_DATE(#{searchFrom}, '%Y-%m-%d %H:%i:%S') AND DATE_ADD(STR_TO_DATE(#{searchTo}, '%Y-%m-%d %H:%i:%S'), interval 1 day)
+        </if>
+        <if test='searchKey1 == "2"'>    <!-- 실제완료일 -->
+            and C.TRUTH_LAST_DATE <![CDATA[>=]]> STR_TO_DATE(#{searchFrom},'%Y-%m-%d %H:%i:%S') and C.TRUTH_LAST_DATE  <![CDATA[<]]> DATE_ADD(STR_TO_DATE(#{searchTo},
+            '%Y-%m-%d %H:%i:%S'), interval 1 day)
+        </if>
+        <if test='searchKey3 != null and searchKey3 != ""'> <!-- 회사명 -->
+            and ELFN_COMPANY_NAME(A.COMPANY_CODE) LIKE CONCAT('%',#{searchKey3},'%')
+        </if>
+        <if test='searchValue1 != null and searchValue1 != ""'> <!-- 진행상태 -->
+            and ELFN_SERVICE_STATUS(A.STATUS, A.CANCEL_STATUS, T.REQ_APPRV_YN) = #{searchValue1}
+        </if>
+        <if test='searchValue2 != null and searchValue2 != ""'> <!-- 신청번호 -->
+        	and A.REQUEST_NO LIKE CONCAT('%',#{searchValue2},'%')
+        </if>
+        group by A.REQUEST_NO
+        order by A.REQUEST_NO DESC
+        <if test='pagingBy != "N"'>
+        limit #{start}, #{pageSize}
+        </if>
+    </select>
+    
+    <!-- 통합검색 리스트  -->
+	<select id="sgDataSearchCnt_Customer" parameterType="Paging" resultType="int">
+	 select
+        count(*)as cnt
+        from
+        (select
+			A.REQUEST_NO
+		from
+	        elt_service_req A
+	        left outer join elt_company T on
+	        	(A.COMPANY_CODE = T.COMPANY_CODE)
+	        left outer join elt_service_process C on
+	        	(A.REQUEST_NO = C.REQUEST_NO AND A.REQUEST_INDEX = C.REQUEST_INDEX)
+	        left outer join elt_service_detail D on
+	        	(A.REQUEST_NO = D.REQUEST_NO AND A.REQUEST_INDEX = C.REQUEST_INDEX)
+	        
+        where A.status <![CDATA[<>]]> '10000'
+	         and A.DEL_FLAG = 'N'
+	         and D.WORK_TYPE='2'
+        
+        <if test='searchKey1 == "1"'>    <!-- 신청일 -->
+            and A.REQUEST_DATE BETWEEN STR_TO_DATE(#{searchFrom}, '%Y-%m-%d %H:%i:%S') AND DATE_ADD(STR_TO_DATE(#{searchTo}, '%Y-%m-%d %H:%i:%S'), interval 1 day)
+        </if>
+        <if test='searchKey1 == "2"'>    <!-- 실제완료일 -->
+            and C.TRUTH_LAST_DATE <![CDATA[>=]]> STR_TO_DATE(#{searchFrom},'%Y-%m-%d %H:%i:%S') and C.TRUTH_LAST_DATE  <![CDATA[<]]> DATE_ADD(STR_TO_DATE(#{searchTo},
+            '%Y-%m-%d %H:%i:%S'), interval 1 day)
+        </if>
+
+        <if test='searchKey3 != null and searchKey3 != ""'> <!-- 회사명 -->
+            and ELFN_COMPANY_NAME(A.COMPANY_CODE) LIKE CONCAT('%',#{searchKey3},'%')
+        </if>
+        <if test='searchValue1 != null and searchValue1 != ""'> <!-- 진행상태 -->
+            and ELFN_SERVICE_STATUS(A.STATUS, A.CANCEL_STATUS, T.REQ_APPRV_YN) = #{searchValue1}
+        </if>
+        <if test='searchValue2 != null and searchValue2 != ""'> <!-- 신청번호 -->
+        	and A.REQUEST_NO LIKE CONCAT('%',#{searchValue2},'%')
+        </if>
+        group by A.REQUEST_NO)A
+    </select>
+    
+    
+</mapper>
