@@ -1,0 +1,176 @@
+package com.cy.itsm.echoline.DataMgmt.Controller;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.cy.itsm.baseInfo.ClientMgmt.Service.ClientMgrServiceImpl;
+import com.cy.itsm.common.AjaxResult;
+import com.cy.itsm.common.File.FileController;
+import com.cy.itsm.common.Paging.Paging;
+import com.cy.itsm.common.util.CommonUtil;
+import com.cy.itsm.common.util.DateUtil;
+import com.cy.itsm.config.security.LoginUser;
+import com.cy.itsm.echoline.DataMgmt.Service.SgkimDataMgmtServiceImpl;
+import com.cy.itsm.echoline.ServiceStatus.Service.ServiceStatusServiceImpl;
+import com.cy.itsm.echoline.ServiceStatus.Service.searchService;
+
+
+
+@Controller
+public class SearchController {
+	
+	private final Logger logger = LoggerFactory.getLogger(this.getClass());
+	
+	@Autowired
+	searchService searchServiceImpl;
+	
+	@Autowired
+	SgkimDataMgmtServiceImpl sgkimDataMgmtServiceImpl;
+	
+	@Autowired
+	ClientMgrServiceImpl clientMgrService;
+	
+	@Autowired
+	ClientMgrServiceImpl clientMgrServiceImpl;
+	
+    @Autowired
+    ServiceStatusServiceImpl serviceStatusServiceImpl;
+    
+    /** 사용자구분
+     * 1. 고객일반
+     * 2. 고객관리자
+     * 3. bsg 컨설턴트
+     * 4. BSG AM
+     * 5. BSG 관리자
+     * */
+	
+	//통합검색 페이지
+    @RequestMapping(value = "/searchList")
+    public String searchList(Model model, @AuthenticationPrincipal LoginUser loginUser, Paging page, HttpServletRequest request) {
+    	String langCode	= loginUser.getLangCode();
+    	String userType	= loginUser.getUserType();
+    	String comGrpCode = loginUser.getComGrpCode();
+    	Map<String, Object> companyInfo = new HashMap<String, Object>();
+    	//진행상태
+    	List<Map<String, String>> statusList	= searchServiceImpl.statusList(langCode);
+        model.addAttribute("statusList", statusList);
+        model.addAttribute("userType", userType);
+        
+        //고객사명, 고객사코드
+        if(!userType.equals("2") && !userType.equals("5")) {
+        	companyInfo	= clientMgrServiceImpl.getCompanyName(loginUser.getCompanyCode());
+        	model.addAttribute("companyName", companyInfo.get("COMPANY_NAME"));
+        	model.addAttribute("companyCode", companyInfo.get("COMPANY_CODE"));
+        }
+        
+        //고객사 그룹코드
+        JSONObject jsonObject = new JSONObject();
+        if ( comGrpCode!=null && !comGrpCode.equals("")) {
+        	model.addAttribute("companyGroupCode", comGrpCode);
+        	//고객사 그룹에 있는 회사 정보
+        	List<Map<String, String>> companyGroupNames = clientMgrService.getCompanyGroupNames(comGrpCode);
+        	
+        	JSONArray ja = new JSONArray();
+        	for ( Map<String, String> map : companyGroupNames) {
+        		
+        		JSONObject jo = new JSONObject();
+				for ( Map.Entry<String, String> entry : map.entrySet()){
+					String key = entry.getKey();
+					String value = entry.getValue();
+					jo.put(key, value);
+				}
+				ja.add(jo);
+			}
+        	jsonObject.put("k", ja);
+		}
+        model.addAttribute("companyGroupNames", jsonObject);
+        
+        return "echoline/dataMgmt/searchList";
+    }
+    
+    @GetMapping("/searchDetail")
+    public String searchDetail(Model model, @AuthenticationPrincipal LoginUser loginUser, @ModelAttribute Paging page, HttpServletRequest request) {
+    	List<Map<String, Object>> mapList = new ArrayList<Map<String, Object>>();
+    	
+    	int nTotalCnt	= 0;
+    	
+    	page.setSearchKey1(CommonUtil.paramNullCheck(request, "searchKey1", ""));
+    	page.setSearchKey2(CommonUtil.paramNullCheck(request, "searchKey2", ""));
+    	page.setSearchKey3(CommonUtil.paramNullCheck(request, "searchKey3", ""));
+    	page.setSearchValue1(CommonUtil.paramNullCheck(request, "searchValue1", ""));
+    	page.setSearchValue2(CommonUtil.paramNullCheck(request, "searchValue2", ""));
+    	page.setSearchValue3(CommonUtil.paramNullCheck(request, "searchValue3", ""));
+    	page.setFilter1(CommonUtil.paramNullCheck(request, "filter1", ""));
+    	page.setFilter2(CommonUtil.paramNullCheck(request, "filter2", ""));
+    	page.setFilter3(CommonUtil.paramNullCheck(request, "filter3", ""));
+    	page.setSearchFrom(CommonUtil.paramNullCheck(request, "searchFrom", ""));
+    	page.setSearchTo(CommonUtil.paramNullCheck(request, "searchTo", ""));
+    	
+    	// 컨설턴트나 외부컨설턴트가 아니면 자기 회사만 조회
+    	String userType	= loginUser.getUserType();
+
+		nTotalCnt	= sgkimDataMgmtServiceImpl.sgDataSearchCnt_Customer(page);
+
+    	page.setTotalCount(nTotalCnt);
+    	page.setLangCode(loginUser.getLangCode());
+    	
+    	//통합검색 리스트
+		mapList	= sgkimDataMgmtServiceImpl.sgDataSearchList_Customer(page);
+    	
+    	model.addAttribute("mapList", mapList);
+    	model.addAttribute("paging", page);
+    	
+        return "echoline/dataMgmt/include/searchDetail";
+
+    }
+    
+	/**
+	 * 통합검색 엑셀파일 다운로드
+	 **/
+	@RequestMapping(value = "/searchListExcel")
+	public @ResponseBody
+	AjaxResult getDataSearchListExcel(@AuthenticationPrincipal LoginUser loginUser, @ModelAttribute Paging page, HttpServletRequest request, HttpServletResponse response) {
+		AjaxResult ajaxResult = new AjaxResult();
+		List<Map<String, Object>> mapList = new ArrayList<Map<String, Object>>();
+
+		try{
+			String date	= DateUtil.getNowYmd("yyyyMMdd");
+
+			String[] header = {"신청번호", "신청자", "신청일", "고객사", "제목", "서비스영역", "담당자", "실제완료일", "진행상태", "실적공수"};
+			String[] mapKeys = {"TEMP_REQEUST_NO", "REQUEST_USER_NAME", "REQUEST_DATE", "COMPANY_NAME", "TITLE", "SAREA_M_NAME", "PER_IN_CHA_NAME", "TRUTH_LAST_DATE", "STATUS_NAME","WORK_HOUR_TOT"};
+
+			page.setPagingBy("N");
+			page.setLangCode(loginUser.getLangCode());
+
+			mapList = sgkimDataMgmtServiceImpl.sgDataSearchListExcel_Customer(page);
+			
+			String fileName	= "통합검색_" + date + ".xls";
+			FileController.createExcelAndDownload(fileName, header, mapKeys, mapList, response);
+
+			ajaxResult.setResultCode("success");
+		} catch(Exception e) {
+			logger.error(e.getMessage());
+			ajaxResult.setResultCode("fail");
+		}
+
+		return ajaxResult;
+	}
+}
