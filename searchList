@@ -1,0 +1,242 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="s" uri="http://www.springframework.org/tags" %>
+
+<c:set var="contextPath" value="${pageContext.request.contextPath}" scope="application"/>
+<!-- #contents -->
+<ul class="locator">
+    <li class="locator__list"><a href="${contextPath}/main"><img src="${contextPath}/resources/images/ico-locator-home.png" alt="home"></a></li>
+    <li class="locator__list"><a href="#">Echoline</a></li>
+    <li class="locator__list"><a href="${contextPath}/dataMgr/dataBoardList.do"><s:message code="LBL0434" text="IT 자산관리"/></a></li>
+    <li class="locator__list current"><a href="${contextPath}/dataMgr/dataSearchList.do"><s:message code="LBL0435" text="통합검색"/></a></li>
+</ul>
+
+<section class="search-area">
+    <table class="search-area__table">
+        <tbody>
+        <tr>
+            <th scope="col"><label for="searchKey1"><s:message code="LBL0026" text="검색일자"/></label></th>
+            <td>
+                <select id="searchKey1" name="searchKey1" class="form-select" style="width: 100px;">
+                    <option value=""><s:message code="LBL0163" text="선택"/></option>
+                    <option value="1"><s:message code="LBL0194" text="신청일"/></option>
+                    <option value="2"><s:message code="LBL0200" text="실제완료일"/></option>
+                </select>
+
+                <div class="tui-datepicker-input tui-datetime-input tui-has-focus" style="margin-left:5px;width:100px;vertical-align: middle;">
+                    <input id="startDate" type="text" aria-label="Date">
+                    <span class="tui-ico-date"></span>
+                    <div id="startpicker-container" style="margin-left: -1px;"></div>
+                </div>
+                <span>~</span>
+                <div class="tui-datepicker-input tui-datetime-input tui-has-focus" style="width:100px;vertical-align: middle;">
+                    <input id="endDate" type="text" aria-label="Date">
+                    <span class="tui-ico-date"></span>
+                    <div id="endpicker-container" style="margin-left: -1px;"></div>
+                </div>
+            </td>
+
+            <th scope="col"><label for="companyName2"><s:message code="LBL0327" text="회사"/></label></th>
+            <td>
+                <input type="text" class="form-text" style="margin-left:5px;margin-right:2px;width:150px;" id="companyName2" name="companyName2">
+                <input type="hidden" id="companyCode2" name="companyCode2"/>
+                <label for="file01" class="btn btn-type10" tabindex="0" style="width:50px;" id="btnCompanyInfo"><s:message code="BTN0004" text="검색"/></label>
+            </td>
+
+ 			<!-- 사용자가 고객일반이나 bsg컨설턴트일 경우 -->               	
+            <th scope="col"><label for="companyYn"><s:message code="LBL0073" text="담당고객사"/></label></th>
+            <td>
+                <c:choose>
+                    <c:when test="${userType eq '1' or userType eq '3'}">
+                        <input type="radio" class="form-radiobox" data-index="1" id="companyYnY" name="companyYn" value="Y" disabled>
+                        <label for="companyYnY" style="vertical-align: middle;"><s:message code="LBL0208" text="예"/></label>
+                        <input type="radio" class="form-radiobox" data-index="2" id="companyYnN" name="companyYn" value="N" disabled>  <%-- <c:if test="${client.reqApprvYn == 'N'}">checked="checked"</c:if> --%>
+                        <label for="companyYnN" style="vertical-align: middle;"><s:message code="LBL0202" text="아니요"/></label>
+                        <input type="hidden" id="companyYn" name="companyYn"/>
+                    </c:when>
+                    <c:otherwise>
+                        <input type="radio" class="form-radiobox" data-index="1" id="companyYnY" name="companyYn" value="Y">
+                        <label for="companyYnY" style="vertical-align: middle;"><s:message code="LBL0208" text="예"/></label>
+                        <input type="radio" class="form-radiobox" data-index="2" id="companyYnN" name="companyYn" value="N">  <%-- <c:if test="${client.reqApprvYn == 'N'}">checked="checked"</c:if> --%>
+                        <label for="companyYnN" style="vertical-align: middle;"><s:message code="LBL0202" text="아니요"/></label>
+                        <input type="hidden" id="companyYn" name="companyYn"/>
+                    </c:otherwise>
+                </c:choose>
+            </td>
+
+            <th scope="col"><label for="status"><s:message code="LBL0270" text="진행상태"/></label></th>
+            <td>status
+                <select id="status" name="status" class="form-select" style="width: 150px;">
+                    <option value=""><s:message code="LBL0163" text="선택"/></option>
+                    <c:forEach var="item" items="${statusList}" varStatus="status">
+                        <option value="${item.CODE_ID}">${item.CODE_NM}</option>
+                    </c:forEach>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="col">신청번호</th>
+            <td>
+                <input type="text" class="form-text" style="margin-left:5px;margin-right:2px;width:150px;" id="searchValue2" name="searchValue2" onkeyup="javascript:if(event.keyCode == 13){document.getElementById('btnSearch').click();};">
+            </td>
+            <td>
+                <button type="button" class="btn btn-table-search" id="btnSearch" style="margin-left:10px;"><s:message code="BTN0004" text="검색"/></button>
+            </td>
+            <td>
+				<button type="button" class="btn btn-type3" id="btnEDownload" style="margin-left:5px;width:150px;height:33px;background: #e1e1e1 url( ${contextPath}/resources/images/ico-file-file.png ) no-repeat right 8px center;"><s:message code="BTN0014" text="Excel Download"/></button>
+			</td>
+        </tr>
+        </tbody>
+    </table>
+</section>
+
+<section class="basic-box" style="min-height: 685px;">
+    <table id="paging-list" class="table-style03">
+    </table>
+</section>
+
+<!-- Modal -->
+<div class="remodal" data-remodal-id="modal01">
+    <div class="remodal__inner">
+        <div class="remodal__contents" id="remodal__contents">
+            <div class="btn-container btn-container--right">
+                <button data-remodal-action="cancel" class="remodal-cancel btn btn-type5" id="btnModalClose"><s:message code="BTN0008" text="닫기"/></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        var userType = "${userType}";
+        var companyName = "${companyName}";
+        var companyCode = "${companyCode}";
+        var check = ${companyGroupNames};
+        
+        //객체가 empty일경우 true
+        //객체가 있을 경우 if문 실행됨
+        if( !jQuery.isEmptyObject(check)){
+         	var test = ${companyGroupNames};
+        	var temp = '';
+        	for(i=0;i<test.k.length;i++ ){
+        		temp += "<option value='" + test.k[i][ "COMPANY_CODE" ] + "'>" + test.k[i][ "COMPANY_NAME" ] + "</option>";
+        	}
+        	$( cgn ).append( temp ); //temp객체를 cgn객체의 마지막에 추가한다
+       }
+       
+        //#btnCompanyInfo 회사 검색버튼
+        //userType1,3 고객일반, bsg컨설턴트
+        if(userType ===  "1" || userType === "3")   {   
+            $("#companyName2").prop("disabled", true); //1,3일때 비활성화
+            $("#companyName2").val(companyName);
+            $("#btnCompanyInfo").hide();
+        }
+
+        $("#companyYnY").attr("checked", true);
+        setCompanyYn("Y");
+
+        if(userType !== '1' && userType !== '3') {
+            $("#companyYn").val('Y')
+        }
+
+        // 초기 데이터 조회
+        getList(1);
+
+        // 조회 버튼 선택 시 검색 기능
+        $("#btnSearch").click(function () {
+            getList(1);
+        });
+
+        // 회사 검색
+        $("#btnCompanyInfo").click(function () {
+            url = "/popup/clientListPopup.do";
+            popup(url, "clientListPopup", "600", "825", "no");
+        });
+        
+        $("input:radio[name=companyYn]").click(function () {
+            companyYn = $(this).val();
+            setCompanyYn(companyYn);
+        })
+
+    });
+    
+    // 엑셀 다운로드
+    //common.js ajax-loading
+     $("#btnEDownload").click(function() {
+        var $ExcelPage	= "/searchListExcel.do";
+        $('#ajax-loading').show();
+        var dataParam = {
+        		"_csrf": csrf,
+                "searchKey1": $("#searchKey1").val(),
+                "searchFrom": $("#startDate").val(),
+                "searchTo": $("#endDate").val(),
+                "filter1": $("#companyYn").val(),
+                "searchValue1": $("#status").val(),
+                "searchKey3": $("#companyName2").val(),
+                "searchValue2": $("#searchValue2").val()
+        };
+		//jquery.fileDownload 
+        $.fileDownload($ExcelPage, {
+            data: dataParam,
+            successCallback: function (url) {
+                $('#ajax-loading').hide();
+            },
+            failCallback: function () {
+                alert("<s:message code="MEG0380" text="다운로드에 실패하였습니다."/>\n<s:message code="MEG0381" text="자세한 사항은 관리자에게 문의하시기 바랍니다."/>")
+                $('#ajax-loading').hide();
+            }
+        });
+    }); 
+
+    function setCompanyYn(companyYn) {
+        if (companyYn === "Y") {
+            $("#companyName2").prop("disabled", true);
+            $('#companyYn').val('Y');
+            $("#btnCompanyInfo").hide();
+        } else {
+            $("#companyName2").prop("disabled", false);
+            $('#companyYn').val('N');
+            $("#btnCompanyInfo").show();
+        }
+    }
+
+    // 데이터리스트 조회
+    function getList(page) {
+        var url = "/searchDetail.do";
+		console.log($("#companyName2").val());
+        var dataParam = {
+            "_csrf": csrf,
+            "page": page,
+            "searchKey1": $("#searchKey1").val(),
+            "searchFrom": $("#startDate").val(),
+            "searchTo": $("#endDate").val(),
+            "filter1": $("#companyYn").val(),
+            "searchValue1": $("#status").val(),
+            "searchKey3": $("#companyName2").val(),
+            "searchValue2": $("#searchValue2").val()
+        };
+		//서버에 GET 방식의 HTTP 요청을 보냄. 서버의 주소 url로 dataParam을 보냄
+		//function(result) 전송받은 데이터와 결과를 보여줌
+        $.get(url, dataParam, function (result) {
+            $("#paging-list").html(result);
+        })
+    }
+
+    var today = new Date();
+    var Datepicker = tui.DatePicker.createRangePicker({
+        startpicker: {
+            date: new Date(today.getFullYear(), today.getMonth() - 1, today.getDate()),
+            input: "#startDate",
+            container: "#startpicker-container"
+        },
+        endpicker: {
+            date: today,
+            input: "#endDate",
+            container: "#endpicker-container"
+        }
+    });
+
+</script>
